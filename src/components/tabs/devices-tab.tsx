@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useMemo } from 'react'
-import { Flame, Zap, Settings, Tv, Fish, Lightbulb, Sprout, Thermometer, RefreshCcw, ChevronLeft, ChevronRight, Microwave } from 'lucide-react'
+import { Zap, Settings, Tv, Sprout, Thermometer, RefreshCcw, ChevronLeft, ChevronRight, Microwave } from 'lucide-react'
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 
 interface Device {
@@ -201,6 +201,7 @@ interface UsageChartProps {
 
 function UsageChart({ data, totalUsage, totalCost, timesOn, totalTimeOn, isDarkMode }: UsageChartProps) {
   const [selectedPeriod, setSelectedPeriod] = useState('Month')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentDate, setCurrentDate] = useState('Last Month')
   const timePeriods = ['Day', 'Week', 'Month', 'Year', 'Bill']
 

@@ -1,8 +1,8 @@
 
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Zap, Tv, AirVent, Lightbulb, Sprout, Thermometer, Microwave, Refrigerator } from 'lucide-react'
+import { Zap, Tv, AirVent, Thermometer, Microwave, Refrigerator } from 'lucide-react'
 interface EnergyData {
   name: string
   alwaysOn?: number

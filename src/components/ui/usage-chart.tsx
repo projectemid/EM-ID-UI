@@ -21,6 +21,7 @@ const timePeriods = ['Day', 'Week', 'Month', 'Year', 'Bill']
 
 export default function UsageChart({ data, totalUsage, totalCost, timesOn, totalTimeOn }: UsageChartProps) {
   const [selectedPeriod, setSelectedPeriod] = useState('Month')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentDate, setCurrentDate] = useState('Last Month')
 
   return (
