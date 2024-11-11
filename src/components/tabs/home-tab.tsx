@@ -1,31 +1,34 @@
+// frontend/src/components/HomeTab.tsx
 
-
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Zap, Tv, AirVent, Thermometer, Microwave, Refrigerator } from 'lucide-react'
-interface EnergyData {
+import axios from 'axios' // Ensure axios is installed: npm install axios
+
+import { deviceDefinitions, DeviceClassification, DeviceDefinition } from '@/data/deviceDefinitions'
+import { getDeviceById } from '@/utils/deviceUtils'
+import { generateActionText } from '@/utils/eventUtils'
+
+// Define the interface for the devices fetched from devices.json
+interface DeviceFromJSON {
   name: string
-  alwaysOn?: number
-  current: number
-  icon: React.ReactNode
+  probability: number
 }
 
-const energyData: EnergyData[] = [
-  { name: "Computer", alwaysOn: 53, current: 323, icon: <Tv /> },
-  { name: "Air Conditioner", alwaysOn: 32, current: 541, icon: <AirVent /> },
-  { name: "Standby Devices", current: 197, icon: <Zap /> },
-  { name: "Oven", alwaysOn: 40, current: 286, icon: <Microwave /> },
-  { name: "Block Heater", current: 448, icon: <Thermometer /> },
-  { name: "Freezer", current: 82, icon: <Refrigerator /> },
-]
+// Define interface for recent events
+interface RecentEvent {
+  time: string
+  deviceId: string
+  action: 'turned_on' | 'turned_off' | 'started_charging' | 'stopped_charging'
+}
 
-
-const recentEvents = [
-  { time: "07:28 pm", event: "Air Conditioner was on 3 times, now off" },
-  { time: "04:59 pm", event: "Block Heater turned on" },
-  { time: "03:59 pm", event: "Oven was on 2 times, now off" },
-  { time: "03:58 pm", event: "Playstation 5 turned off" },
-  { time: "02:57 pm", event: "Air Fryer was on 2 times, now off" },
+// Static recentEvents array
+const recentEvents: RecentEvent[] = [
+  { time: "07:28 pm", deviceId: "air_conditioner", action: 'turned_on' },
+  { time: "04:59 pm", deviceId: "block_heater", action: 'turned_on' },
+  { time: "03:59 pm", deviceId: "oven", action: 'turned_on' },
+  { time: "03:58 pm", deviceId: "playstation_5", action: 'turned_off' },
+  { time: "02:57 pm", deviceId: "air_fryer", action: 'turned_on' },
 ]
 
 interface HomeTabProps {
@@ -33,9 +36,72 @@ interface HomeTabProps {
 }
 
 export default function HomeTab({ isDarkMode }: HomeTabProps) {
-  const [hoveredDevice, setHoveredDevice] = useState<EnergyData | null>(null)
-  const totalEnergy = energyData.reduce((sum, device) => sum + device.current, 0)
-  const maxEnergy = Math.max(...energyData.map(device => device.current))
+  // State to hold the filtered devices to display
+  const [displayEnergyData, setDisplayEnergyData] = useState<DeviceDefinition[]>([])
+
+  // State to manage total energy and max energy
+  const [totalEnergy, setTotalEnergy] = useState<number>(0)
+  const [maxEnergy, setMaxEnergy] = useState<number>(0)
+
+  // State to manage hovered device for the footer
+  const [hoveredDevice, setHoveredDevice] = useState<DeviceDefinition | null>(null)
+
+  useEffect(() => {
+    // Function to fetch devices.json and filter energyData
+    const fetchAndFilterDevices = async () => {
+      try {
+        // Append a timestamp to prevent caching
+        const timestamp = new Date().getTime()
+        const response = await axios.get<DeviceFromJSON[]>(`http://localhost:8000/devices.json?t=${timestamp}`)
+        const devicesFromJSON = response.data
+
+        console.log('Fetched Devices from JSON:', devicesFromJSON)
+
+        // Map devicesFromJSON by id for easier access
+        const devicesMap: { [key: string]: DeviceFromJSON } = {}
+        devicesFromJSON.forEach(device => {
+          devicesMap[device.name] = device
+        })
+
+        // Filter deviceDefinitions based on probability > 0.5
+        const filteredDevices: DeviceDefinition[] = deviceDefinitions.filter(device => {
+          const deviceJSON = devicesMap[device.id] // device.id corresponds to deviceJSON.name
+          if (deviceJSON && deviceJSON.probability > 0.5) {
+            // Log the probability
+            console.log(`Device: ${deviceJSON.name}, Probability: ${deviceJSON.probability}`)
+            return true
+          }
+          return false
+        })
+
+        // Update the state with filtered devices
+        setDisplayEnergyData(filteredDevices)
+
+        // Calculate totalEnergy and maxEnergy based on filtered devices
+        const newTotalEnergy = filteredDevices.reduce((sum, device) => sum + device.current, 0)
+        const newMaxEnergy = filteredDevices.length > 0 ? Math.max(...filteredDevices.map(d => d.current)) : 0
+
+        setTotalEnergy(newTotalEnergy)
+        setMaxEnergy(newMaxEnergy)
+
+        // Log updated states for debugging
+        console.log('Updated displayEnergyData:', filteredDevices)
+        console.log('Updated Total Energy:', newTotalEnergy)
+        console.log('Updated Max Energy:', newMaxEnergy)
+      } catch (error) {
+        console.error('Error fetching devices.json:', error)
+      }
+    }
+
+    // Initial fetch
+    fetchAndFilterDevices()
+
+    // Set up polling to fetch data every 5 seconds
+    const interval = setInterval(fetchAndFilterDevices, 5000)
+
+    // Clean up the interval on component unmount
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <div className={`flex h-full ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-800'}`}>
@@ -44,15 +110,40 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
         <div className="p-6">
           <h2 className="text-xl font-semibold mb-6">TODAY</h2>
           <div className="space-y-6">
-            {recentEvents.map((event, index) => (
-              <div key={index} className="flex items-start space-x-3">
-                <div className="w-3 h-3 mt-1.5 rounded-full bg-yellow-500 flex-shrink-0" />
-                <div>
-                  <p className="text-base font-medium">{event.time}</p>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1`}>{event.event}</p>
+            {recentEvents.map((event, index) => {
+              // Find device definition by deviceId
+              const deviceDef = getDeviceById(event.deviceId)
+
+              if (!deviceDef) {
+                // If device definition not found, skip or display raw event
+                return (
+                  <div key={index} className="flex items-start space-x-3">
+                    <div className="w-3 h-3 mt-1.5 rounded-full bg-yellow-500 flex-shrink-0" />
+                    <div>
+                      <p className="text-base font-medium">{event.time}</p>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1`}>
+                        Unknown device action
+                      </p>
+                    </div>
+                  </div>
+                )
+              }
+
+              // Generate event sentence based on classification and action
+              const actionText = generateActionText(deviceDef, event.action)
+
+              return (
+                <div key={index} className="flex items-start space-x-3">
+                  <div className="w-3 h-3 mt-1.5 rounded-full bg-yellow-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-base font-medium">{event.time}</p>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1`}>
+                      {actionText}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </aside>
@@ -65,21 +156,27 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
           </p>
         </header>
         <main className="flex-1 p-6 overflow-y-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {energyData.map((device) => (
-              <EnergyOrb
-                key={device.name}
-                device={device}
-                maxEnergy={maxEnergy}
-                isDarkMode={isDarkMode}
-                onHover={setHoveredDevice}
-              />
-            ))}
-          </div>
+          {displayEnergyData.length === 0 ? (
+            <p>No active devices currently.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-8">
+              {displayEnergyData.map((device) => (
+                <EnergyOrb
+                  key={device.id}
+                  device={device}
+                  maxEnergy={maxEnergy}
+                  isDarkMode={isDarkMode}
+                  onHover={setHoveredDevice}
+                />
+              ))}
+            </div>
+          )}
         </main>
         {hoveredDevice && (
           <footer className={`p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <h2 className="text-lg font-semibold">{hoveredDevice.name}</h2>
+            <h2 className="text-lg font-semibold">
+              {hoveredDevice.label}
+            </h2>
             <p>Current Usage: {hoveredDevice.current.toLocaleString()} W</p>
             {hoveredDevice.alwaysOn && <p>Always On: {hoveredDevice.alwaysOn} W</p>}
           </footer>
@@ -90,10 +187,10 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
 }
 
 interface EnergyOrbProps {
-  device: EnergyData
+  device: DeviceDefinition
   maxEnergy: number
   isDarkMode: boolean
-  onHover: (device: EnergyData | null) => void
+  onHover: (device: DeviceDefinition | null) => void
 }
 
 function EnergyOrb({ device, maxEnergy, isDarkMode, onHover }: EnergyOrbProps) {
@@ -139,7 +236,7 @@ function EnergyOrb({ device, maxEnergy, isDarkMode, onHover }: EnergyOrbProps) {
         </div>
       </motion.div>
       <p className={`mt-2 text-center ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-        {device.name}
+        {device.label}
       </p>
       <p className={`text-sm font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
         {device.current}W
