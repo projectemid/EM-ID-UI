@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Zap, Tv, AirVent, Thermometer, Microwave, Refrigerator } from 'lucide-react'
 import axios from 'axios' // Ensure axios is installed: npm install axios
 
-import { deviceDefinitions, DeviceClassification, DeviceDefinition } from '@/data/deviceDefinitions'
+import { deviceDefinitions, DeviceDefinition } from '@/data/deviceDefinitions'
 import { getDeviceById } from '@/utils/deviceUtils'
 import { generateActionText } from '@/utils/eventUtils'
 
@@ -13,6 +12,7 @@ import { generateActionText } from '@/utils/eventUtils'
 interface DeviceFromJSON {
   name: string
   probability: number
+  timestamp: string;
 }
 
 // Define interface for recent events
@@ -47,61 +47,63 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
   const [hoveredDevice, setHoveredDevice] = useState<DeviceDefinition | null>(null)
 
   useEffect(() => {
-    // Function to fetch devices.json and filter energyData
+    // Function to fetch devices from the API
     const fetchAndFilterDevices = async () => {
       try {
-        // Append a timestamp to prevent caching
-        const timestamp = new Date().getTime()
-        const response = await axios.get<DeviceFromJSON[]>(`http://localhost:8000/devices.json?t=${timestamp}`)
-        const devicesFromJSON = response.data
-
-        console.log('Fetched Devices from JSON:', devicesFromJSON)
-
-        // Map devicesFromJSON by id for easier access
-        const devicesMap: { [key: string]: DeviceFromJSON } = {}
-        devicesFromJSON.forEach(device => {
-          devicesMap[device.name] = device
-        })
-
-        // Filter deviceDefinitions based on probability > 0.5
+        // Replace with your actual API endpoint
+        const apiUrl = 'https://07ukjb4hd6.execute-api.us-east-1.amazonaws.com/alpha/devices';
+  
+        const response = await axios.get<{ devices: DeviceFromJSON[] }>(apiUrl);
+        const devicesFromAPI = response.data.devices;
+  
+        console.log('Fetched Devices from API:', devicesFromAPI);
+  
+        // Map devicesFromAPI by name for easier access
+        const devicesMap: { [key: string]: DeviceFromJSON } = {};
+        devicesFromAPI.forEach(device => {
+          devicesMap[device.name] = device;
+        });
+  
+        // Filter deviceDefinitions based on devices from API
         const filteredDevices: DeviceDefinition[] = deviceDefinitions.filter(device => {
-          const deviceJSON = devicesMap[device.id] // device.id corresponds to deviceJSON.name
-          if (deviceJSON && deviceJSON.probability > 0.5) {
+          const deviceAPI = devicesMap[device.id]; // device.id corresponds to deviceAPI.name
+          if (deviceAPI) {
             // Log the probability
-            console.log(`Device: ${deviceJSON.name}, Probability: ${deviceJSON.probability}`)
-            return true
+            console.log(`Device: ${deviceAPI.name}, Probability: ${deviceAPI.probability}`);
+            return true;
           }
-          return false
-        })
-
+          return false;
+        });
+  
         // Update the state with filtered devices
-        setDisplayEnergyData(filteredDevices)
-
+        setDisplayEnergyData(filteredDevices);
+  
         // Calculate totalEnergy and maxEnergy based on filtered devices
-        const newTotalEnergy = filteredDevices.reduce((sum, device) => sum + device.current, 0)
-        const newMaxEnergy = filteredDevices.length > 0 ? Math.max(...filteredDevices.map(d => d.current)) : 0
-
-        setTotalEnergy(newTotalEnergy)
-        setMaxEnergy(newMaxEnergy)
-
+        const newTotalEnergy = filteredDevices.reduce((sum, device) => sum + device.current, 0);
+        const newMaxEnergy = filteredDevices.length > 0 ? Math.max(...filteredDevices.map(d => d.current)) : 0;
+  
+        setTotalEnergy(newTotalEnergy);
+        setMaxEnergy(newMaxEnergy);
+  
         // Log updated states for debugging
-        console.log('Updated displayEnergyData:', filteredDevices)
-        console.log('Updated Total Energy:', newTotalEnergy)
-        console.log('Updated Max Energy:', newMaxEnergy)
+        console.log('Updated displayEnergyData:', filteredDevices);
+        console.log('Updated Total Energy:', newTotalEnergy);
+        console.log('Updated Max Energy:', newMaxEnergy);
       } catch (error) {
-        console.error('Error fetching devices.json:', error)
+        console.error('Error fetching devices from API:', error);
       }
-    }
-
+    };
+  
     // Initial fetch
-    fetchAndFilterDevices()
-
+    fetchAndFilterDevices();
+  
     // Set up polling to fetch data every 5 seconds
-    const interval = setInterval(fetchAndFilterDevices, 5000)
-
+    const interval = setInterval(fetchAndFilterDevices, 5000);
+  
     // Clean up the interval on component unmount
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
+  
 
   return (
     <div className={`flex h-full ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-800'}`}>

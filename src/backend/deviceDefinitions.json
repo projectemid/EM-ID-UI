@@ -1,6 +1,6 @@
 [
     {
-        "id": "smart_bulb_augusto",
+        "id": "smart_bulb_augusto_on_v2",
         "label": "Augusto's Light Bulb",
         "classification": "always_connected",
         "icon": "Tv",
@@ -21,7 +21,7 @@
         "current": 80
     },
     {
-        "id": "ipad_augusto",
+        "id": "ipad_augusto_on",
         "label": "Augusto's iPad",
         "classification": "charging",
         "icon": "Microwave",
