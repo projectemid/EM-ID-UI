@@ -1,7 +1,7 @@
 // frontend/src/data/deviceDefinitions.ts
 
 import React from 'react'
-import { Zap, Tv, AirVent, Thermometer, Microwave } from 'lucide-react'
+import { Zap, Tv, AirVent, Thermometer, Microwave, Tablet } from 'lucide-react'
 
 // Define the possible classifications for devices
 export type DeviceClassification = 'always_connected' | 'charging'
@@ -19,14 +19,14 @@ export interface DeviceDefinition {
 // Centralized device definitions
 export const deviceDefinitions: DeviceDefinition[] = [
   {
-    id: "smart_bulb_augusto_on_v2",
+    id: "lightbulb_augusto",
     label: "Augusto's Light Bulb",
     classification: 'always_connected',
     icon: <Tv />, // Replace with a more appropriate icon if available
     current: 8,
   },
   {
-    id: "macbook_luca",
+    id: "mac_luca",
     label: "Luca's MacBook",
     classification: 'always_connected',
     icon: <AirVent />, // Replace with a more appropriate icon if available
@@ -40,10 +40,10 @@ export const deviceDefinitions: DeviceDefinition[] = [
     current: 80,
   },
   {
-    id: "ipad_augusto_on",
+    id: "ipad_off_augusto",
     label: "Augusto's iPad",
     classification: 'charging',
-    icon: <Microwave />, // Replace with a more appropriate icon if available
+    icon: <Tablet />, // Replace with a more appropriate icon if available
     current: 15,
   },
   // Devices used in recent events
