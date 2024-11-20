@@ -1,38 +1,33 @@
-// frontend/src/components/DevicesTab.tsx
+"use client"
 
-"use client";
+import React, { useState, useEffect } from 'react'
+import { deviceDefinitions, type DeviceDefinition } from '@/data/deviceDefinitions'
+import { Settings } from 'lucide-react'
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 
-import React, { useState, useEffect } from 'react';
-import { Settings } from 'lucide-react';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
-import axios from 'axios'; // Ensure axios is installed: npm install axios
-
-import { DeviceDefinition, deviceDefinitions } from '@/data/deviceDefinitions';
-
-// Define the interface for device details data
 interface DeviceDetailsData {
-  average: number;
-  cost: number;
+  average: number
+  cost: number
   stats: {
-    estimatedKwhYear: number;
-    averageUsage: number;
-    averageTimesOnPerMonth: number;
-    averageRunTime: string;
-    averageCostPerMonth: number;
-  };
-  usageData: { date: string; usage: number }[];
-  totalUsage: number;
-  totalCost: number;
-  timesOn: number;
-  totalTimeOn: string;
+    estimatedKwhYear: number
+    averageUsage: number
+    averageTimesOnPerMonth: number
+    averageRunTime: string
+    averageCostPerMonth: number
+  }
+  usageData: { date: string; usage: number }[]
+  totalUsage: number
+  totalCost: number
+  timesOn: number
+  totalTimeOn: string
   timeline: Array<{
-    time: string;
-    event: string;
-    power: number;
-  }>;
+    time: string
+    event: string
+    power: number
+  }>
 }
 
-// Mock device details - in a real app, this would come from your data source
+// Mock device details - in a real app, this would come from your backend
 const deviceDetails: Record<string, DeviceDetailsData> = {
   "smart_bulb_augusto": {
     average: 8,
@@ -44,9 +39,9 @@ const deviceDetails: Record<string, DeviceDetailsData> = {
       averageRunTime: "8h 20m",
       averageCostPerMonth: 1
     },
-    usageData: Array.from({ length: 31 }, (_, i) => ({
-      date: (i + 1).toString(),
-      usage: parseFloat((Math.random() * 0.5).toFixed(2))
+    usageData: Array.from({ length: 31 }, (_, i) => ({ 
+      date: (i + 1).toString(), 
+      usage: Math.random() * 0.5 
     })),
     totalUsage: 5.2,
     totalCost: 0.62,
@@ -58,101 +53,63 @@ const deviceDetails: Record<string, DeviceDetailsData> = {
     ]
   }
   // Add more device details as needed
-};
+}
 
 interface DevicesTabProps {
-  isDarkMode: boolean;
+  isDarkMode: boolean
 }
 
 // Extend DeviceDefinition to include isOn property
 interface ExtendedDeviceDefinition extends DeviceDefinition {
-  isOn: boolean;
+  isOn: boolean
 }
 
 export default function DevicesTab({ isDarkMode }: DevicesTabProps) {
-  const [devices, setDevices] = useState<ExtendedDeviceDefinition[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<ExtendedDeviceDefinition | null>(null);
-  const [editingDevice, setEditingDevice] = useState<ExtendedDeviceDefinition | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([
-    { time: "07:28 pm", deviceId: "air_conditioner", action: 'turned_on' },
-    { time: "04:59 pm", deviceId: "block_heater", action: 'turned_on' },
-    { time: "03:59 pm", deviceId: "oven", action: 'turned_on' },
-    { time: "03:58 pm", deviceId: "playstation_5", action: 'turned_off' },
-    { time: "02:57 pm", deviceId: "air_fryer", action: 'turned_on' },
-  ]); // Initialize with static recent events
+  const [devices, setDevices] = useState<ExtendedDeviceDefinition[]>([])
+  const [selectedDevice, setSelectedDevice] = useState<ExtendedDeviceDefinition | null>(null)
+  const [editingDevice, setEditingDevice] = useState<ExtendedDeviceDefinition | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   useEffect(() => {
-    // Function to fetch devices.json and determine which devices are on
-    const fetchDevices = async () => {
-      try {
-        // Fetch devices.json from the public folder
-        const response = await axios.get<DeviceFromJSON[]>('/devices.json');
-        const devicesFromJSON = response.data;
+    // Simulate fetching devices and their status
+    const fetchDevices = () => {
+      const extendedDevices = deviceDefinitions.map(device => ({
+        ...device,
+        isOn: Math.random() < 0.5 // Randomly set devices as on or off
+      }))
+      
+      // Sort devices: on devices first, then by name
+      extendedDevices.sort((a, b) => {
+        if (a.isOn === b.isOn) {
+          return a.label.localeCompare(b.label)
+        }
+        return a.isOn ? -1 : 1
+      })
 
-        console.log('Fetched Devices from JSON:', devicesFromJSON);
+      setDevices(extendedDevices)
+      setSelectedDevice(extendedDevices[0])
+    }
 
-        // Map devicesFromJSON by name for easier access
-        const devicesMap: { [key: string]: number } = {};
-        devicesFromJSON.forEach(device => {
-          devicesMap[device.name] = device.probability;
-        });
-
-        // Filter deviceDefinitions based on probability > 0.5
-        const filteredDevices: ExtendedDeviceDefinition[] = deviceDefinitions
-          .filter(device => {
-            const probability = devicesMap[device.id];
-            if (probability !== undefined && probability > 0.5) {
-              // Log the probability
-              console.log(`Device: ${device.id}, Probability: ${probability}`);
-              return true;
-            }
-            return false;
-          })
-          .map(device => ({
-            ...device,
-            isOn: devicesMap[device.id] > 0.5
-          }));
-
-        // Sort devices: on devices first, then by name
-        filteredDevices.sort((a, b) => {
-          if (a.isOn === b.isOn) {
-            return a.label.localeCompare(b.label);
-          }
-          return a.isOn ? -1 : 1;
-        });
-
-        setDevices(filteredDevices);
-        setSelectedDevice(filteredDevices[0] || null);
-      } catch (error) {
-        console.error('Error fetching devices.json:', error);
-      }
-    };
-
-    fetchDevices();
-
-    // Set up polling to fetch devices every 5 seconds
-    const interval = setInterval(fetchDevices, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    fetchDevices()
+    // In a real app, you might want to set up an interval to periodically fetch device status
+    // const interval = setInterval(fetchDevices, 60000) // Fetch every minute
+    // return () => clearInterval(interval)
+  }, [])
 
   const handleUpdateDevice = (updatedDevice: Partial<ExtendedDeviceDefinition>) => {
-    if (!selectedDevice) return;
-
-    const newDevices = devices.map(device =>
-      device.id === selectedDevice.id
+    const newDevices = devices.map(device => 
+      device.id === selectedDevice?.id 
         ? { ...device, ...updatedDevice }
         : device
-    );
-    setDevices(newDevices);
-    setSelectedDevice(prev => prev ? { ...prev, ...updatedDevice } : null);
-    setEditingDevice(null);
-    setIsDialogOpen(false);
-  };
+    )
+    setDevices(newDevices)
+    setSelectedDevice(prev => prev ? { ...prev, ...updatedDevice } : null)
+    setEditingDevice(null)
+    setIsDialogOpen(false)
+  }
 
   if (!selectedDevice) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>
   }
 
   return (
@@ -164,15 +121,13 @@ export default function DevicesTab({ isDarkMode }: DevicesTabProps) {
             <button
               key={device.id}
               className={`flex items-center w-full p-2 rounded-lg mb-2 ${
-                selectedDevice.id === device.id
+                selectedDevice.id === device.id 
                   ? isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
                   : isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
               }`}
               onClick={() => setSelectedDevice(device)}
             >
-              <div className={`mr-3 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                {device.icon}
-              </div>
+              <div className={`mr-3 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{device.icon}</div>
               <div className="flex-1 text-left">
                 <div className="font-medium">{device.label}</div>
                 <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -201,12 +156,12 @@ export default function DevicesTab({ isDarkMode }: DevicesTabProps) {
               </p>
             </div>
           </div>
-
+          
           <button
             className={`p-2 rounded-full ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
             onClick={() => {
-              setEditingDevice(selectedDevice);
-              setIsDialogOpen(true);
+              setEditingDevice(selectedDevice)
+              setIsDialogOpen(true)
             }}
           >
             <Settings className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
@@ -214,10 +169,10 @@ export default function DevicesTab({ isDarkMode }: DevicesTabProps) {
         </div>
 
         {deviceDetails[selectedDevice.id] ? (
-          <DeviceContent
-            device={selectedDevice}
-            details={deviceDetails[selectedDevice.id]}
-            isDarkMode={isDarkMode}
+          <DeviceContent 
+            device={selectedDevice} 
+            details={deviceDetails[selectedDevice.id]} 
+            isDarkMode={isDarkMode} 
           />
         ) : (
           <div className="text-center mt-10">No details available for this device.</div>
@@ -233,7 +188,7 @@ export default function DevicesTab({ isDarkMode }: DevicesTabProps) {
                   type="text"
                   className={`w-full p-2 rounded ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100'}`}
                   value={editingDevice?.label || ''}
-                  onChange={(e) => setEditingDevice(prev => prev ? { ...prev, label: e.target.value } : null)}
+                  onChange={(e) => setEditingDevice(prev => prev ? {...prev, label: e.target.value} : null)}
                 />
               </div>
               <div className="mb-4">
@@ -242,7 +197,7 @@ export default function DevicesTab({ isDarkMode }: DevicesTabProps) {
                   type="number"
                   className={`w-full p-2 rounded ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100'}`}
                   value={editingDevice?.current || 0}
-                  onChange={(e) => setEditingDevice(prev => prev ? { ...prev, current: Number(e.target.value) } : null)}
+                  onChange={(e) => setEditingDevice(prev => prev ? {...prev, current: Number(e.target.value)} : null)}
                 />
               </div>
               {editingDevice?.classification === 'always_connected' && (
@@ -252,7 +207,7 @@ export default function DevicesTab({ isDarkMode }: DevicesTabProps) {
                     type="number"
                     className={`w-full p-2 rounded ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100'}`}
                     value={editingDevice?.alwaysOn || 0}
-                    onChange={(e) => setEditingDevice(prev => prev ? { ...prev, alwaysOn: Number(e.target.value) } : null)}
+                    onChange={(e) => setEditingDevice(prev => prev ? {...prev, alwaysOn: Number(e.target.value)} : null)}
                   />
                 </div>
               )}
@@ -279,9 +234,9 @@ export default function DevicesTab({ isDarkMode }: DevicesTabProps) {
 }
 
 interface DeviceContentProps {
-  device: ExtendedDeviceDefinition;
-  details: DeviceDetailsData;
-  isDarkMode: boolean;
+  device: ExtendedDeviceDefinition
+  details: DeviceDetailsData
+  isDarkMode: boolean
 }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function DeviceContent({ device, details, isDarkMode }: DeviceContentProps) {
@@ -293,7 +248,7 @@ function DeviceContent({ device, details, isDarkMode }: DeviceContentProps) {
           <p className="text-2xl font-bold mt-2">{details.average}W</p>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>while on</p>
         </div>
-
+        
         <div className={`p-6 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
           <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>COST</h3>
           <p className="text-2xl font-bold mt-2">${details.cost}/yr</p>
@@ -348,15 +303,4 @@ function DeviceContent({ device, details, isDarkMode }: DeviceContentProps) {
       </div>
     </div>
   )
-}
-
-interface RecentEvent {
-  time: string;
-  deviceId: string;
-  action: 'turned_on' | 'turned_off' | 'started_charging' | 'stopped_charging';
-}
-
-interface DeviceFromJSON {
-  name: string;
-  probability: number;
 }

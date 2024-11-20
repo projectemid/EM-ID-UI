@@ -11,9 +11,9 @@ export interface DeviceDefinition {
   id: string
   label: string
   classification: DeviceClassification
-  icon: React.ReactNode
+icon: React.ReactNode
   current: number // Energy consumption in Watts
-  alwaysOn?: number // Optional property for devices that are always on
+  alwaysOn?: number // Optional property for devices that are always ont
 }
 
 // Centralized device definitions

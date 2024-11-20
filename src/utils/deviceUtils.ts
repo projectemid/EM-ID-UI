@@ -1,8 +1,21 @@
 // frontend/src/utils/deviceUtils.ts
 
-import { deviceDefinitions, DeviceDefinition } from '../data/deviceDefinitions'
+import { DeviceDefinition } from "@/types";
 
-// Function to retrieve device definition by ID
+let devices: DeviceDefinition[] = [];
+
+export const setDevices = (fetchedDevices: DeviceDefinition[]) => {
+  devices = fetchedDevices;
+};
+
+export const addDevice = (newDevice: DeviceDefinition) => {
+  devices = [...devices, newDevice];
+};
+
 export const getDeviceById = (id: string): DeviceDefinition | undefined => {
-  return deviceDefinitions.find(device => device.id === id)
-}
+  return devices.find(device => device.id === id);
+};
+
+export const getAllDevices = (): DeviceDefinition[] => {
+  return devices;
+};
