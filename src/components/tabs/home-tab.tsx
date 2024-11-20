@@ -145,7 +145,7 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
       fetchAndFilterDevices();
 
       // Set up polling to fetch data every 5 seconds
-      const interval = setInterval(fetchAndFilterDevices, 5000);
+      const interval = setInterval(fetchAndFilterDevices, 1000);
 
       // Clean up the interval on component unmount
       return () => clearInterval(interval);
