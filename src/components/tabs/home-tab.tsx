@@ -3,17 +3,16 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import axios from 'axios'
-import { DeviceDefinition } from '@/types'
-import NewDeviceModal from '../new-device-modal'
 import { getIconByClassification } from '@/utils/classificationIconMapping'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { getDeviceById, setDevices, addDevice } from '@/utils/deviceUtils'
-
+// import { getDeviceById, setDevices, addDevice } from '@/utils/deviceUtils'
 
 interface DeviceFromAPI {
-  name: string;
-  probability: number;
-  timestamp: string;
+  device_id: string;
+  wattage: number;
+  classification: string;
+  label: string;
+  state: string;
 }
 
 interface RecentEvent {
@@ -33,20 +32,24 @@ interface HomeTabProps {
 }
 
 export default function HomeTab({ isDarkMode }: HomeTabProps) {
-  // State to hold device definitions fetched from API
-  const [deviceDefinitions, setDeviceDefinitionsState] = useState<DeviceDefinition[]>([]);
-  // State to hold the filtered devices to display
-  const [displayEnergyData, setDisplayEnergyData] = useState<DeviceDefinition[]>([])
+  // State to hold the devices fetched from API
+  const [displayEnergyData, setDisplayEnergyData] = useState<DeviceFromAPI[]>([])
   // State to manage total energy and max energy
   const [totalEnergy, setTotalEnergy] = useState<number>(0)
   const [maxEnergy, setMaxEnergy] = useState<number>(0)
 
   // State to manage hovered device for the footer
-  const [hoveredDevice, setHoveredDevice] = useState<DeviceDefinition | null>(null)
+  const [hoveredDevice, setHoveredDevice] = useState<DeviceFromAPI | null>(null)
+  
+  // Commented out code related to unknown devices and modal
+  /*
   // State variables for handling unknown devices
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [unknownDevice, setUnknownDevice] = useState<{ deviceId: string; label?: string; current?: number; classification?: string } | null>(null);
+  */
 
+  // Commented out useEffect fetching device definitions from another API
+  /*
   // Fetch device definitions from API
   useEffect(() => {
     const fetchDeviceDefinitions = async () => {
@@ -76,63 +79,39 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
 
     fetchDeviceDefinitions();
   }, []);
+  */
 
   useEffect(() => {
     // Function to fetch devices from the API
-    const fetchAndFilterDevices = async () => {
+    const fetchDevices = async () => {
       try {
-        const apiUrl = 'https://07ukjb4hd6.execute-api.us-east-1.amazonaws.com/alpha/devices';
-        const response = await axios.get<{ devices: DeviceFromAPI[] }>(apiUrl);
-        const devicesFromAPI = response.data.devices;
+        const apiUrl = 'https://dl3runvp3m.execute-api.us-east-1.amazonaws.com/beta/devicesOn';
+        const response = await axios.get(apiUrl);
+        console.log('Response from API:', response.data);
 
-        console.log('Fetched Devices from API:', devicesFromAPI);
+        // Parse the body if necessary
+        const responseData = response.data;
+        let devicesOn: DeviceFromAPI[] = [];
 
-        // Map devicesFromAPI by name for easier access
-        const devicesMap: { [key: string]: DeviceFromAPI } = {};
-        devicesFromAPI.forEach(device => {
-          devicesMap[device.name] = device;
-        });
-
-        // Identify unknown devices with probability >= 0.9
-        const unknownDevices = devicesFromAPI.filter(
-          device => device.probability >= 0.9 && !deviceDefinitions.find(def => def.id === device.name)
-        );
-        if (unknownDevices.length > 0 && !isModalOpen) {
-          // Take the first unknown device to prompt the modal
-          const firstUnknown = unknownDevices[0];
-          setUnknownDevice({
-            deviceId: firstUnknown.name,
-          });
-          setIsModalOpen(true);
+        if (responseData.body) {
+          const bodyData = JSON.parse(responseData.body);
+          devicesOn = bodyData.devices_on;
+        } else {
+          devicesOn = responseData.devices_on;
         }
 
-        // Filter deviceDefinitions based on devices from API with probability > 0.9
-        const filteredDevices: DeviceDefinition[] = deviceDefinitions.filter(device => {
-          const deviceAPI = devicesMap[device.id];
-          if (deviceAPI && deviceAPI.probability >= 0.9) {
-            return true;
-          }
-          return false;
-        });
+        console.log('Devices On:', devicesOn);
 
-        // Merge live data with device definitions
-        const mergedDevices: DeviceDefinition[] = filteredDevices.map(device => ({
-          ...device,
-          probability: devicesMap[device.id].probability,
-          timestamp: devicesMap[device.id].timestamp,
-        }));
+        setDisplayEnergyData(devicesOn);
 
-        setDisplayEnergyData(mergedDevices);
-
-        // Calculate totalEnergy and maxEnergy based on filtered devices
-        const newTotalEnergy = mergedDevices.reduce((sum, device) => sum + device.power, 0);
-        const newMaxEnergy = mergedDevices.length > 0 ? Math.max(...mergedDevices.map(d => d.power)) : 0;
+        // Calculate totalEnergy and maxEnergy based on fetched devices
+        const newTotalEnergy = devicesOn.reduce((sum, device) => sum + device.wattage, 0);
+        const newMaxEnergy = devicesOn.length > 0 ? Math.max(...devicesOn.map(d => d.wattage)) : 0;
 
         setTotalEnergy(newTotalEnergy);
         setMaxEnergy(newMaxEnergy);
 
         // Log updated states for debugging
-        console.log('Updated displayEnergyData:', mergedDevices);
         console.log('Updated Total Energy:', newTotalEnergy);
         console.log('Updated Max Energy:', newMaxEnergy);
       } catch (error) {
@@ -140,18 +119,18 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
       }
     };
 
-    if (deviceDefinitions.length > 0) {
-      // Initial fetch
-      fetchAndFilterDevices();
+    // Initial fetch
+    fetchDevices();
 
-      // Set up polling to fetch data every 5 seconds
-      const interval = setInterval(fetchAndFilterDevices, 1000);
+    // Set up polling to fetch data every 1 second
+    const interval = setInterval(fetchDevices, 1000);
 
-      // Clean up the interval on component unmount
-      return () => clearInterval(interval);
-    }
-  }, [deviceDefinitions, isModalOpen]);
+    // Clean up the interval on component unmount
+    return () => clearInterval(interval);
+  }, []);
 
+  // Commented out handleAddNewDevice function
+  /*
   // Handle adding a new device via the modal
   const handleAddNewDevice = async (deviceData: { deviceName: string; averageWatts: number; deviceType: string }) => {
     if (!unknownDevice) return;
@@ -201,6 +180,7 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
       alert('Failed to add the new device. Please try again.');
     }
   };
+  */
 
   return (
     <div className={`flex h-full ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-800'}`}>
@@ -237,7 +217,7 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {displayEnergyData.map((device) => (
                 <EnergyOrb
-                  key={device.id}
+                  key={device.device_id}
                   device={device}
                   maxEnergy={maxEnergy}
                   isDarkMode={isDarkMode}
@@ -252,12 +232,15 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
             <h2 className="text-lg font-semibold">
               {hoveredDevice.label}
             </h2>
-            <p>Current Usage: {hoveredDevice.power.toLocaleString()} W</p>
+            <p>Current Usage: {hoveredDevice.wattage.toLocaleString()} W</p>
+            {/* Uncomment if 'alwaysOn' data is available
             {hoveredDevice.alwaysOn && <p>Always On: {hoveredDevice.alwaysOn} W</p>}
+            */}
           </footer>
         )}
 
-        {/* New Device Modal */}
+        {/* Commented out New Device Modal */}
+        {/*
         <NewDeviceModal
           isOpen={isModalOpen}
           onClose={() => {
@@ -266,20 +249,21 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
           }}
           onConfirm={handleAddNewDevice}
         />
+        */}
       </div>
     </div>
   )
 }
 
 interface EnergyOrbProps {
-  device: DeviceDefinition
+  device: DeviceFromAPI
   maxEnergy: number
   isDarkMode: boolean
-  onHover: (device: DeviceDefinition | null) => void
+  onHover: (device: DeviceFromAPI | null) => void
 }
 
 function EnergyOrb({ device, maxEnergy, isDarkMode, onHover }: EnergyOrbProps) {
-  const energyRatio = maxEnergy > 0 ? device.power / maxEnergy : 0;
+  const energyRatio = maxEnergy > 0 ? device.wattage / maxEnergy : 0;
   const size = 100 + energyRatio * 100; // Size ranges from 100px to 200px
   const glowIntensity = 10 + energyRatio * 20; // Glow intensity ranges from 10 to 30
 
@@ -291,7 +275,7 @@ function EnergyOrb({ device, maxEnergy, isDarkMode, onHover }: EnergyOrbProps) {
   };
 
   const color = getColor(energyRatio);
-  const iconComponent = getIconByClassification(device.classification);
+  const iconComponent = getIconByClassification(device.classification.toLowerCase().replace(/\s+/g, '_'));
 
   return (
     <motion.div
@@ -325,7 +309,7 @@ function EnergyOrb({ device, maxEnergy, isDarkMode, onHover }: EnergyOrbProps) {
         {device.label}
       </p>
       <p className={`text-sm font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-        {device.power} W
+        {device.wattage} W
       </p>
     </motion.div>
   )
