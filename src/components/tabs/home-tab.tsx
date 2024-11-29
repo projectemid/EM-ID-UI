@@ -186,7 +186,7 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
     <div className={`flex h-full ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-800'}`}>
       <aside className={`w-64 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-md overflow-y-auto`}>
         <div className="p-6">
-          <h2 className="text-xl font-semibold mb-6">Today's Activity</h2>
+          <h2 className="text-xl font-semibold mb-6">Today&apos;s Activity</h2>
           {recentEvents.length > 0 ? (
             <div className="space-y-6">
               {recentEvents.map((event, index) => (
@@ -204,7 +204,7 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
           ) : (
             <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               <p>No recent activity to display.</p>
-              <p className="mt-2">To receive device notifications, please set them up in each device's configuration.</p>
+              <p className="mt-2">To receive device notifications, please set them up in each device&apos;s configuration.</p>
             </div>
           )}
         </div>
