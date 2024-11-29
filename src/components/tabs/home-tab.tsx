@@ -22,9 +22,9 @@ interface RecentEvent {
 }
 
 const recentEvents: RecentEvent[] = [
-  { time: "07:28 pm", deviceId: "air_conditioner", text: "Augusto's iPad was charging for 34 minutes." },
-  { time: "07:11 pm", deviceId: "block_heater", text: "Floor Lamp was turned on for 7 minutes" },
-  { time: "06:59 pm", deviceId: "oven", text: "Luca's MacBook was charging for 54 minutes" },
+  // { time: "07:28 pm", deviceId: "air_conditioner", text: "Augusto's iPad was charging for 34 minutes." },
+  // { time: "07:11 pm", deviceId: "block_heater", text: "Floor Lamp was turned on for 7 minutes" },
+  // { time: "06:59 pm", deviceId: "oven", text: "Luca's MacBook was charging for 54 minutes" },
 ]
 
 interface HomeTabProps {
@@ -186,20 +186,27 @@ export default function HomeTab({ isDarkMode }: HomeTabProps) {
     <div className={`flex h-full ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-800'}`}>
       <aside className={`w-64 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-md overflow-y-auto`}>
         <div className="p-6">
-          <h2 className="text-xl font-semibold mb-6">TODAY</h2>
-          <div className="space-y-6">
-            {recentEvents.map((event, index) => (
-              <div key={index} className="flex items-start space-x-3">
-                <div className="w-3 h-3 mt-1.5 rounded-full bg-yellow-500 flex-shrink-0" />
-                <div>
-                  <p className="text-base font-medium">{event.time}</p>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1`}>
-                    {event.text}
-                  </p>
+          <h2 className="text-xl font-semibold mb-6">Today's Activity</h2>
+          {recentEvents.length > 0 ? (
+            <div className="space-y-6">
+              {recentEvents.map((event, index) => (
+                <div key={index} className="flex items-start space-x-3">
+                  <div className="w-3 h-3 mt-1.5 rounded-full bg-yellow-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-base font-medium">{event.time}</p>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1`}>
+                      {event.text}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              <p>No recent activity to display.</p>
+              <p className="mt-2">To receive device notifications, please set them up in each device's configuration.</p>
+            </div>
+          )}
         </div>
       </aside>
 
