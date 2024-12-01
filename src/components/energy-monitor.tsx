@@ -1,40 +1,45 @@
-// frontend/src/components/energy-monitor.tsx
-
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Home, Activity, BarChart2, Cpu, Settings } from 'lucide-react'
-import HomeTab from './tabs/home-tab'
-import AnalyticsTab from './tabs/analytics-tab'
-import MeterTab from './tabs/meter-tab'
-import DevicesTab from './tabs/devices-tab'
-import SettingsTab from './tabs/settings-tab'
-import { DevicesProvider } from '../contexts/DevicesContext' // Adjusted path
-import { EventsProvider } from '../contexts/EventsContext'   // Adjusted path
+import React, { useState, useEffect } from 'react';
+import { Home, Activity, Cpu, Settings } from 'lucide-react';
+import HomeTab from './tabs/home-tab';
+import AnalyticsTab from './tabs/analytics-tab';
+import DevicesTab from './tabs/devices-tab';
+import SettingsTab from './tabs/settings-tab';
+import { useData } from '../context/DataContext';
 
-type NavItem = 'home' | 'analytics' | 'meter' | 'devices' | 'settings'
+type NavItem = 'home' | 'analytics' | 'devices' | 'settings';
 
 export default function EnergyMonitor() {
-  const [activeNav, setActiveNav] = useState<NavItem>('home')
-  const [isDarkMode, setIsDarkMode] = useState(false)
+  const { userData } = useData();
+  const [activeNav, setActiveNav] = useState<NavItem>('home');
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
+  // Update dark mode when userData changes
   useEffect(() => {
-    // Apply dark mode class to the body
-    if (isDarkMode) {
-      document.body.classList.add('dark')
-    } else {
-      document.body.classList.remove('dark')
+    if (userData) {
+      setIsDarkMode(userData.darkMode);
     }
-  }, [isDarkMode])
+  }, [userData]);
+
+  // Apply dark mode class to document
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode)
-  }
+    setIsDarkMode(!isDarkMode);
+    // Here you would typically also update the userData on your backend
+  };
+
+
 
   return (
-    // Wrap the entire application within DevicesProvider and EventsProvider
-    <DevicesProvider>
-      <EventsProvider>
+
         <div
           className={`flex flex-col h-screen ${
             isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-100 text-gray-800'
@@ -60,13 +65,6 @@ export default function EnergyMonitor() {
                     isDarkMode={isDarkMode}
                   />
                   <NavButton
-                    icon={<BarChart2 className="w-5 h-5" />}
-                    label="Meter"
-                    isActive={activeNav === 'meter'}
-                    onClick={() => setActiveNav('meter')}
-                    isDarkMode={isDarkMode}
-                  />
-                  <NavButton
                     icon={<Cpu className="w-5 h-5" />}
                     label="Devices"
                     isActive={activeNav === 'devices'}
@@ -89,16 +87,13 @@ export default function EnergyMonitor() {
           <div className="flex-1 overflow-hidden">
             {activeNav === 'home' && <HomeTab isDarkMode={isDarkMode} />}
             {activeNav === 'analytics' && <AnalyticsTab isDarkMode={isDarkMode} />}
-            {activeNav === 'meter' && <MeterTab isDarkMode={isDarkMode} />}
             {activeNav === 'devices' && <DevicesTab isDarkMode={isDarkMode} />}
             {activeNav === 'settings' && (
               <SettingsTab isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
             )}
           </div>
         </div>
-      </EventsProvider>
-    </DevicesProvider>
-  )
+  );
 }
 
 function NavButton({
@@ -108,11 +103,11 @@ function NavButton({
   onClick,
   isDarkMode,
 }: {
-  icon: React.ReactNode
-  label: string
-  isActive: boolean
-  onClick: () => void
-  isDarkMode: boolean
+  icon: React.ReactNode;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+  isDarkMode: boolean;
 }) {
   return (
     <button
@@ -130,5 +125,5 @@ function NavButton({
       {icon}
       <span className="ml-2">{label}</span>
     </button>
-  )
+  );
 }

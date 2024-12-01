@@ -1,22 +1,25 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import EnergyMonitor from "@/components/energy-monitor"
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import EnergyMonitor from "@/components/energy-monitor";
+import { DataProvider } from '@/context/DataContext';
 
 export default function Dashboard() {
-  const router = useRouter()
+  const router = useRouter();
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem("isAuthenticated")
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
     if (!isAuthenticated) {
-      router.push("/")
+      router.push("/");
     }
-  }, [router])
+  }, [router]);
 
   return (
     <main className="min-h-screen bg-gray-100">
-      <EnergyMonitor />
+      <DataProvider>
+        <EnergyMonitor />
+      </DataProvider>
     </main>
-  )
+  );
 }

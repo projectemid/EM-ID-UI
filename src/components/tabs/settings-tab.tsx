@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Info, Plus, User, Bell, Zap, Settings, HelpCircle } from 'lucide-react'
+import { useData } from '@/context/DataContext';
 
 interface SettingsTabProps {
   isDarkMode: boolean;
@@ -11,6 +12,7 @@ interface SettingsTabProps {
 }
 
 export default function SettingsTab({ isDarkMode, toggleDarkMode }: SettingsTabProps) {
+  const { updateUserData } = useData();
   const [defaultCost, setDefaultCost] = useState('9')
   const [billingCycleStart, setBillingCycleStart] = useState('6')
   const [showCost, setShowCost] = useState(false)
@@ -23,6 +25,15 @@ export default function SettingsTab({ isDarkMode, toggleDarkMode }: SettingsTabP
     { name: 'General', icon: <Settings className="w-5 h-5" /> },
     { name: 'Help', icon: <HelpCircle className="w-5 h-5" /> },
   ]
+
+  const handleDarkModeToggle = async () => {
+    try {
+      await updateUserData({ darkMode: !isDarkMode });
+      toggleDarkMode(); // Local state update
+    } catch (error) {
+      console.error('Error updating dark mode:', error);
+    }
+  };
 
   return (
     <div className={`flex h-full ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
@@ -117,7 +128,7 @@ export default function SettingsTab({ isDarkMode, toggleDarkMode }: SettingsTabP
               <Switch
                 id="dark-mode"
                 checked={isDarkMode}
-                onCheckedChange={toggleDarkMode}
+                onCheckedChange={handleDarkModeToggle}
                 className={isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}
               />
               <Label htmlFor="dark-mode">Dark Mode</Label>

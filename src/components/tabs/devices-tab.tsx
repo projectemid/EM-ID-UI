@@ -1,306 +1,314 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import { deviceDefinitions, type DeviceDefinition } from '@/data/deviceDefinitions'
-import { Settings } from 'lucide-react'
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Power, PowerOff, Clock, Settings } from 'lucide-react';
+import { getIconByClassification } from '@/utils/classificationIconMapping';
+import { cn } from "@/lib/utils";
+import { useData, Device } from '@/context/DataContext';
+import { DeviceSettingsModal } from '../modals/device-settings-modal';
 
-interface DeviceDetailsData {
-  average: number
-  cost: number
-  stats: {
-    estimatedKwhYear: number
-    averageUsage: number
-    averageTimesOnPerMonth: number
-    averageRunTime: string
-    averageCostPerMonth: number
-  }
-  usageData: { date: string; usage: number }[]
-  totalUsage: number
-  totalCost: number
-  timesOn: number
-  totalTimeOn: string
-  timeline: Array<{
-    time: string
-    event: string
-    power: number
-  }>
-}
+const DevicesTab = ({ isDarkMode }: { isDarkMode: boolean }) => {
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+  const { devices, devicesOn, setDevicesOn } = useData();
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [timeRange, setTimeRange] = useState('day');
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
-// Mock device details - in a real app, this would come from your backend
-const deviceDetails: Record<string, DeviceDetailsData> = {
-  "smart_bulb_augusto": {
-    average: 8,
-    cost: 12,
-    stats: {
-      estimatedKwhYear: 70,
-      averageUsage: 8,
-      averageTimesOnPerMonth: 300,
-      averageRunTime: "8h 20m",
-      averageCostPerMonth: 1
-    },
-    usageData: Array.from({ length: 31 }, (_, i) => ({ 
-      date: (i + 1).toString(), 
-      usage: Math.random() * 0.5 
-    })),
-    totalUsage: 5.2,
-    totalCost: 0.62,
-    timesOn: 31,
-    totalTimeOn: "248h",
-    timeline: [
-      { time: "07:00 AM", event: "Turned On", power: 8 },
-      { time: "11:00 PM", event: "Turned Off", power: 0 }
-    ]
-  }
-  // Add more device details as needed
-}
+  const handleDeviceClick = (device: Device) => {
+    setSelectedDevice(device);
+  };
 
-interface DevicesTabProps {
-  isDarkMode: boolean
-}
+  const getDeviceIcon = (category: string) => {
+    return getIconByClassification(category.toLowerCase().replace(/\s+/g, '_'));
+  };
 
-// Extend DeviceDefinition to include isOn property
-interface ExtendedDeviceDefinition extends DeviceDefinition {
-  isOn: boolean
-}
+  const handleSaveDeviceSettings = async (deviceData: Partial<Device>) => {
+    // TODO: Implement the save functionality
+    console.log('Saving device settings:', deviceData)
+  };
 
-export default function DevicesTab({ isDarkMode }: DevicesTabProps) {
-  const [devices, setDevices] = useState<ExtendedDeviceDefinition[]>([])
-  const [selectedDevice, setSelectedDevice] = useState<ExtendedDeviceDefinition | null>(null)
-  const [editingDevice, setEditingDevice] = useState<ExtendedDeviceDefinition | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const sortedDevices = useMemo(() => {
+    if (!devices || !devicesOn) return [];  // Add safety check
+    return [...devices].sort((a, b) => {
+      const aOn = devicesOn.includes(a.deviceId);
+      const bOn = devicesOn.includes(b.deviceId);
+      if (aOn && !bOn) return -1;
+      if (!aOn && bOn) return 1;
+      return b.wattageOn - a.wattageOn;
+    });
+  }, [devices, devicesOn]);
 
-  useEffect(() => {
-    // Simulate fetching devices and their status
-    const fetchDevices = () => {
-      const extendedDevices = deviceDefinitions.map(device => ({
-        ...device,
-        isOn: Math.random() < 0.5 // Randomly set devices as on or off
-      }))
-      
-      // Sort devices: on devices first, then by name
-      extendedDevices.sort((a, b) => {
-        if (a.isOn === b.isOn) {
-          return a.label.localeCompare(b.label)
-        }
-        return a.isOn ? -1 : 1
-      })
-
-      setDevices(extendedDevices)
-      setSelectedDevice(extendedDevices[0])
-    }
-
-    fetchDevices()
-    // In a real app, you might want to set up an interval to periodically fetch device status
-    // const interval = setInterval(fetchDevices, 60000) // Fetch every minute
-    // return () => clearInterval(interval)
-  }, [])
-
-  const handleUpdateDevice = (updatedDevice: Partial<ExtendedDeviceDefinition>) => {
-    const newDevices = devices.map(device => 
-      device.id === selectedDevice?.id 
-        ? { ...device, ...updatedDevice }
-        : device
-    )
-    setDevices(newDevices)
-    setSelectedDevice(prev => prev ? { ...prev, ...updatedDevice } : null)
-    setEditingDevice(null)
-    setIsDialogOpen(false)
-  }
-
-  if (!selectedDevice) {
-    return <div>Loading...</div>
-  }
+  // Add safety check before rendering
+  if (!devices || !devicesOn) return null;
 
   return (
-    <div className={`flex h-full ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
-      {/* Sidebar */}
-      <div className={`w-64 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-md overflow-y-auto`}>
+    <div className={cn(
+      "flex h-full",
+      isDarkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
+    )}>
+      {/* Left Sidebar - Device List */}
+      <ScrollArea className={cn(
+        "w-80 border-r",
+        isDarkMode ? "border-gray-800" : "border-gray-200"
+      )}>
         <div className="p-4">
-          {devices.map((device) => (
-            <button
-              key={device.id}
-              className={`flex items-center w-full p-2 rounded-lg mb-2 ${
-                selectedDevice.id === device.id 
-                  ? isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-                  : isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-              }`}
-              onClick={() => setSelectedDevice(device)}
-            >
-              <div className={`mr-3 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{device.icon}</div>
-              <div className="flex-1 text-left">
-                <div className="font-medium">{device.label}</div>
-                <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {device.current}W
-                </div>
-              </div>
-              {device.isOn && (
-                <div className="w-2 h-2 rounded-full bg-green-400"></div>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <div className={`mr-4 p-3 ${isDarkMode ? 'bg-blue-600' : 'bg-blue-500'} rounded-full text-white`}>
-              {selectedDevice.icon}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">{selectedDevice.label}</h1>
-              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                {selectedDevice.classification === 'always_connected' ? 'Always Connected' : 'Charging'}
-              </p>
-            </div>
-          </div>
-          
-          <button
-            className={`p-2 rounded-full ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
-            onClick={() => {
-              setEditingDevice(selectedDevice)
-              setIsDialogOpen(true)
-            }}
-          >
-            <Settings className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-          </button>
-        </div>
-
-        {deviceDetails[selectedDevice.id] ? (
-          <DeviceContent 
-            device={selectedDevice} 
-            details={deviceDetails[selectedDevice.id]} 
-            isDarkMode={isDarkMode} 
-          />
-        ) : (
-          <div className="text-center mt-10">No details available for this device.</div>
-        )}
-
-        {isDialogOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-6 rounded-lg w-96`}>
-              <h2 className="text-xl font-bold mb-4">Device Settings</h2>
-              <div className="mb-4">
-                <label className="block mb-2">Device Name</label>
-                <input
-                  type="text"
-                  className={`w-full p-2 rounded ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100'}`}
-                  value={editingDevice?.label || ''}
-                  onChange={(e) => setEditingDevice(prev => prev ? {...prev, label: e.target.value} : null)}
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block mb-2">Power Consumption (Watts)</label>
-                <input
-                  type="number"
-                  className={`w-full p-2 rounded ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100'}`}
-                  value={editingDevice?.current || 0}
-                  onChange={(e) => setEditingDevice(prev => prev ? {...prev, current: Number(e.target.value)} : null)}
-                />
-              </div>
-              {editingDevice?.classification === 'always_connected' && (
-                <div className="mb-4">
-                  <label className="block mb-2">Always-On Power (Watts)</label>
-                  <input
-                    type="number"
-                    className={`w-full p-2 rounded ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100'}`}
-                    value={editingDevice?.alwaysOn || 0}
-                    onChange={(e) => setEditingDevice(prev => prev ? {...prev, alwaysOn: Number(e.target.value)} : null)}
-                  />
-                </div>
-              )}
-              <div className="flex justify-end space-x-2">
-                <button
-                  className={`px-4 py-2 rounded ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-200 hover:bg-gray-300'}`}
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className={`px-4 py-2 rounded ${isDarkMode ? 'bg-blue-600 hover:bg-blue-500' : 'bg-blue-500 hover:bg-blue-400'} text-white`}
-                  onClick={() => editingDevice && handleUpdateDevice(editingDevice)}
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  )
-}
-
-interface DeviceContentProps {
-  device: ExtendedDeviceDefinition
-  details: DeviceDetailsData
-  isDarkMode: boolean
-}
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function DeviceContent({ device, details, isDarkMode }: DeviceContentProps) {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-6">
-        <div className={`p-6 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-          <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>AVERAGE</h3>
-          <p className="text-2xl font-bold mt-2">{details.average}W</p>
-          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>while on</p>
-        </div>
-        
-        <div className={`p-6 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-          <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>COST</h3>
-          <p className="text-2xl font-bold mt-2">${details.cost}/yr</p>
-          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Based on last season</p>
-        </div>
-
-        <div className={`p-6 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-          <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>USAGE</h3>
-          <div className="h-40 mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={details.usageData}>
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Bar dataKey="usage" fill="#3B82F6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-6">
-        <div className={`p-6 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-          <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`}>STATS</h3>
+          <h2 className="text-lg font-semibold mb-4">Your Devices</h2>
           <div className="space-y-4">
-            {Object.entries(details.stats).map(([key, value]) => (
-              <div key={key} className="flex justify-between">
-                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
-                </span>
-                <span>{value}</span>
-              </div>
+            {sortedDevices.map((device) => (
+              <Card 
+                key={device.deviceId} 
+                className={cn(
+                  "cursor-pointer transition-all duration-200 hover:shadow-md",
+                  selectedDevice?.deviceId === device.deviceId
+                    ? isDarkMode ? "bg-gray-800 border-blue-500" : "bg-white border-blue-500"
+                    : isDarkMode ? "bg-gray-800" : "bg-white",
+                  devicesOn.includes(device.deviceId)
+                    ? "border-l-4 border-l-green-500"
+                    : isDarkMode ? "border-gray-700" : "border-gray-200"
+                )}
+                onClick={() => handleDeviceClick(device)}
+              >
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={cn(
+                      "w-10 h-10 flex items-center justify-center rounded-full",
+                      isDarkMode ? "bg-gray-700" : "bg-gray-200"
+                    )}>
+                      {getDeviceIcon(device.category)}
+                    </div>
+                    <div>
+                      <p className="font-medium">{device.label}</p>
+                      <p className={cn(
+                        "text-xs",
+                        isDarkMode ? "text-gray-400" : "text-gray-500"
+                      )}>
+                        {device.wattageOn}W
+                      </p>
+                    </div>
+                  </div>
+                  {devicesOn.includes(device.deviceId) && (
+                    <Power className="w-4 h-4 text-green-500" />
+                  )}
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
+      </ScrollArea>
 
-        <div className={`p-6 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-          <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`}>TIMELINE</h3>
-          <div className="space-y-4">
-            {details.timeline.map((event, index) => (
-              <div key={index} className="flex items-start">
-                <div className={`w-2 h-2 mt-2 rounded-full ${isDarkMode ? 'bg-blue-400' : 'bg-blue-600'} mr-3`} />
-                <div>
-                  <p className="font-medium">{event.time}</p>
-                  <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                    {event.event} - {event.power}W
+      {/* Main Content Area */}
+      {selectedDevice ? (
+        <div className="flex-1 p-8 overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "w-16 h-16 flex items-center justify-center rounded-2xl",
+                isDarkMode ? "bg-blue-500/10" : "bg-blue-100"
+              )}>
+                {getDeviceIcon(selectedDevice.category)}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">{selectedDevice.label}</h1>
+                <div className="flex items-center space-x-2 mt-1">
+                  <Badge 
+                    variant={devicesOn.includes(selectedDevice.deviceId) ? "default" : "secondary"}
+                  >
+                    {devicesOn.includes(selectedDevice.deviceId) ? "On" : "Off"}
+                  </Badge>
+                  <p className={cn(
+                    "text-sm",
+                    isDarkMode ? "text-gray-400" : "text-gray-600"
+                  )}>
+                    {selectedDevice.room || 'No location'}
                   </p>
                 </div>
               </div>
-            ))}
+            </div>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                size="lg"
+                className={cn(
+                  "flex items-center gap-2",
+                  isDarkMode
+                    ? "border-gray-700 text-white hover:bg-gray-800"
+                    : "border-gray-300 text-gray-900 hover:bg-gray-200"
+                )}
+                onClick={() => setIsSettingsModalOpen(true)}
+              >
+                <Settings className="w-5 h-5" />
+                Device Settings
+              </Button>
+            </div>
           </div>
+
+          {/* Device Details */}
+          <Card className={cn(
+            "mb-8",
+            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          )}>
+            <CardHeader>
+              <CardTitle>Device Details</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium mb-1">Brand</p>
+                <p className={isDarkMode ? "text-gray-300" : "text-gray-700"}>{selectedDevice.brand}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1">Model</p>
+                <p className={isDarkMode ? "text-gray-300" : "text-gray-700"}>{selectedDevice.model}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1">Wattage (On)</p>
+                <p className={isDarkMode ? "text-gray-300" : "text-gray-700"}>{selectedDevice.wattageOn}W</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1">Wattage (Standby)</p>
+                <p className={isDarkMode ? "text-gray-300" : "text-gray-700"}>{selectedDevice.wattageStandby}W</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Power Consumption Visualization */}
+          <Card className={cn(
+            "mb-8",
+            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          )}>
+            <CardHeader>
+              <CardTitle>Power Consumption</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <Badge variant={devicesOn.includes(selectedDevice.deviceId) ? "default" : "secondary"}>
+                  {devicesOn.includes(selectedDevice.deviceId) ? (
+                    <Power className="w-4 h-4 mr-1" />
+                  ) : (
+                    <PowerOff className="w-4 h-4 mr-1" />
+                  )}
+                  {devicesOn.includes(selectedDevice.deviceId) ? "On" : "Off"}
+                </Badge>
+                <p className="text-2xl font-bold">
+                  {devicesOn.includes(selectedDevice.deviceId) ? selectedDevice.wattageOn : selectedDevice.wattageStandby}W
+                </p>
+              </div>
+              <Progress 
+                value={devicesOn.includes(selectedDevice.deviceId) ? 100 : (selectedDevice.wattageStandby / selectedDevice.wattageOn) * 100} 
+                className="h-2 mb-2"
+              />
+              <div className="flex justify-between text-sm">
+                <span>0W</span>
+                <span>{selectedDevice.wattageOn}W</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Usage Statistics - Now with time period controls */}
+          <Card className={cn(
+            "mb-8",
+            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          )}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Usage Statistics</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Tabs defaultValue={timeRange} onValueChange={setTimeRange}>
+                    <TabsList className={isDarkMode ? "bg-gray-700" : "bg-gray-100"}>
+                      <TabsTrigger value="day">Day</TabsTrigger>
+                      <TabsTrigger value="week">Week</TabsTrigger>
+                      <TabsTrigger value="month">Month</TabsTrigger>
+                      <TabsTrigger value="year">Year</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px] flex items-center justify-center">
+                <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+                  Usage statistics and graphs will be implemented here.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Timeline */}
+          <Card className={cn(
+            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          )}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Timeline</CardTitle>
+                <Button variant="outline" size="sm" className={cn(
+                  isDarkMode
+                    ? "border-gray-700 text-white hover:bg-gray-800"
+                    : "border-gray-300 text-gray-900 hover:bg-gray-100"
+                )}>
+                  <Clock className="w-4 h-4 mr-2" />
+                  Today
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {devicesOn.includes(selectedDevice.deviceId) ? (
+                  <div className="flex items-start gap-3">
+                    <div className="relative">
+                      <div className="w-2 h-2 mt-2 rounded-full bg-blue-500" />
+                      <div className="absolute top-4 left-1/2 w-px h-full -translate-x-1/2 bg-gray-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Now</div>
+                      <div className={cn(
+                        "text-sm",
+                        isDarkMode ? "text-gray-400" : "text-gray-500"
+                      )}>Device is running</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 mt-2 rounded-full bg-gray-500" />
+                    <div>
+                      <div className="font-medium">Now</div>
+                      <div className={cn(
+                        "text-sm",
+                        isDarkMode ? "text-gray-400" : "text-gray-500"
+                      )}>Device is off</div>
+                    </div>
+                  </div>
+                )}
+                {/* Placeholder for future timeline events */}
+                <div className="text-sm text-gray-500 pl-5">
+                  Additional timeline events will appear here when device data is implemented.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-gray-400">
+          Select a device to view details
+        </div>
+      )}
+      {selectedDevice && (
+        <DeviceSettingsModal
+          open={isSettingsModalOpen}
+          onOpenChange={setIsSettingsModalOpen}
+          device={selectedDevice}
+          onSave={handleSaveDeviceSettings}
+          isDarkMode={isDarkMode}
+        />
+      )}
     </div>
-  )
-}
+  );
+};
+
+export default DevicesTab;
+

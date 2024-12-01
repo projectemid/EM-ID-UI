@@ -1,6 +1,6 @@
 // frontend/src/utils/classificationIconMapping.tsx
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Tablet, Laptop, Tv, AirVent, Thermometer, Microwave, Speaker, Zap } from 'lucide-react';
+import { Tablet, Laptop, Tv, AirVent, Thermometer, Microwave, Speaker, Zap, WashingMachine, LampFloor, LampDesk, Lamp, Lightbulb, Gamepad2, Monitor, Computer, Refrigerator } from 'lucide-react';
 import React from 'react';
 
 // Define a type for classification names
@@ -16,6 +16,13 @@ type ClassificationName =
   | 'computer'
   | 'cooking_appliance'
   | 'speaker'
+  | 'washing_machine'
+  | 'dryer'
+  | 'floor_lamp'
+  | 'desk_lamp'
+  | 'lamp'
+  | 'fridge'
+  | 'freezer'
   | 'other';
 
 // Map classification names to React components
@@ -24,13 +31,20 @@ export const classificationIconMap: { [key in ClassificationName]: React.ReactNo
   tablet: <Tablet />,
   phone: <Zap />, // Replace with an appropriate icon if available
   laptop: <Laptop />,
-  lights: <Zap />, // Replace with an appropriate icon if available
-  console: <Zap />, // Replace with an appropriate icon if available
+  lights: <Lightbulb />, // Replace with an appropriate icon if available
+  console: <Gamepad2 />, // Replace with an appropriate icon if available
   tv: <Tv />,
-  monitor: <Tv />, // Replace with an appropriate icon if available
-  computer: <Laptop />, // Replace with an appropriate icon if available
+  monitor: <Monitor />, // Replace with an appropriate icon if available
+  computer: <Computer />, // Replace with an appropriate icon if available
   cooking_appliance: <Microwave />,
   speaker: <Speaker />,
+  washing_machine: <WashingMachine />,
+  dryer: <WashingMachine />,
+  floor_lamp: <LampFloor/>,
+  desk_lamp: <LampDesk />,
+  lamp: <Lamp />,
+  fridge: <Refrigerator />,
+  freezer: <Refrigerator />,
   other: <Zap />, // Default icon
 };
 
