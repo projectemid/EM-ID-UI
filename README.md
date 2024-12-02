@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EM-ID: Smart Home Energy Monitoring System
+
+A Next.js web application for monitoring and analyzing home energy consumption through EMI data collection.
+
+## Table of Contents
+
+- [Project Structure](#project-structure)
+  - [Root Configuration Files](#root-configuration-files)
+  - [Source Code (`/src`)](#source-code-src)
+    - [App Pages](#app-pages)
+    - [Components](#components)
+      - [Tab Components](#tab-components)
+      - [UI Components](#ui-components)
+    - [Cloud Functions](#cloud-functions)
+  - [Documentation](#documentation)
+- [Key Features](#key-features)
+- [Technology Stack](#technology-stack)
+- [Getting Started](#getting-started)
+- [Project Context](#project-context)
+- [License](#license)
+
+## Project Structure
+
+### Root Configuration Files
+
+- `next.config.mjs` - Next.js configuration
+- `postcss.config.mjs` - PostCSS configuration for Tailwind
+- `tailwind.config.ts` - Tailwind CSS configuration with custom theme settings
+- `tsconfig.json` - TypeScript configuration
+- `.eslintrc.json` - ESLint rules and settings
+- `components.json` - Component configuration for shadcn/ui
+- `package.json` - Project dependencies and scripts
+
+### Source Code (`/src`)
+
+#### App Pages
+
+- `/app/page.tsx` - Landing page with authentication
+- `/app/layout.tsx` - Root layout with global styles
+- `/app/dashboard/page.tsx` - Main dashboard after authentication
+- `/app/globals.css` - Global CSS styles and Tailwind directives
+
+#### Components
+
+- `/components/auth/auth-page.tsx` - Authentication page with login/signup forms
+- `/components/energy-monitor.tsx` - Main dashboard layout and navigation
+- `/components/new-device-modal.tsx` - Modal for adding new devices
+
+##### Tab Components
+
+- `/components/tabs/home-tab.tsx` - Home dashboard with device orbs and timeline
+- `/components/tabs/devices-tab.tsx` - Device management and details
+- `/components/tabs/analytics-tab.tsx` - Energy usage analytics and charts
+- `/components/tabs/settings-tab.tsx` - User and system settings
+- `/components/tabs/meter-tab.tsx` - Meter readings display
+
+##### UI Components
+
+- `/components/ui/` - Reusable UI components (accordion, card, dialog, table, etc.)
+- `/components/graph-helpers/` - Chart and data visualization components
+
+#### Cloud Functions
+
+- `/cloud_functions/prod_add_new_device.py` - AWS Lambda function for device addition
+- `/cloud_functions/prod_edit_user_info.py` - AWS Lambda function for user data management
+
+### Documentation
+
+- `/components/context.md` - Detailed project context and architecture documentation
+
+## Key Features
+
+- **Real-time Device Monitoring:** Track energy consumption through EMI data in real-time.
+- **Interactive Visualization:** Device state visualization with interactive orbs.
+- **Analytics & Cost Tracking:** Comprehensive energy usage analytics and cost tracking.
+- **User Management:** User account management with customizable preferences.
+- **Dark Mode:** Support for dark mode to enhance user experience.
+- **Responsive Design:** Optimized for all screen sizes and devices.
+
+## Technology Stack
+
+- **Frontend:** Next.js, React, TypeScript
+- **Styling:** Tailwind CSS, shadcn/ui
+- **State Management:** React Context
+- **Charts:** Recharts
+- **Authentication:** Custom implementation (AWS ready)
+- **Cloud Services:** AWS (DynamoDB, Lambda, API Gateway)
 
 ## Getting Started
 
-First, run the development server:
+Follow these steps to set up the project locally:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. **Install Dependencies:**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+    Open your terminal and run:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+    ```bash
+    npm install
+    ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Run the Development Server:**
 
-## Learn More
+    Start the development server with:
 
-To learn more about Next.js, take a look at the following resources:
+    ```bash
+    npm run dev
+    ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. **Access the Application:**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+    Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-## Deploy on Vercel
+## Project Context
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+For detailed information about the project architecture, data flow, and features, please refer to the [context documentation](src/components/context.md).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
