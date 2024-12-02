@@ -1,5 +1,3 @@
-// analytics-tab.tsx
-
 "use client"
 
 import { useState, useEffect } from 'react'
@@ -136,9 +134,9 @@ export default function AnalyticsTab({ isDarkMode }: { isDarkMode: boolean }) {
   const textColor = isDarkMode ? 'text-white' : 'text-black'
 
   return (
-    <div className={`w-full p-6 ${bgColor} ${textColor}`}>
-      <Card className={`w-full border-none ${bgColor}`}>
-        <CardHeader>
+    <div className="w-full h-full flex flex-col overflow-hidden">
+      <Card className={`w-full h-full border-none ${bgColor} flex flex-col`}>
+        <CardHeader className="sticky top-0 z-10 bg-inherit shrink-0">
           <div className="flex items-center justify-between">
             <Tabs
               defaultValue={period}
@@ -176,25 +174,28 @@ export default function AnalyticsTab({ isDarkMode }: { isDarkMode: boolean }) {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <UsageChart
-            aggregatedData={aggregatedData}
-            period={period}
-            dateRange={dateRange}
-            devices={devices}
-            userData={userData}
-            displayMode={displayMode}
-          />
-          <DeviceTable
-            aggregatedData={aggregatedData}
-            period={period}
-            dateRange={dateRange}
-            devices={devices}
-            userData={userData}
-            displayMode={displayMode}
-          />
+        <CardContent className="flex-1 overflow-y-auto min-h-0">
+          <div className="space-y-6">
+            <UsageChart
+              aggregatedData={aggregatedData}
+              period={period}
+              dateRange={dateRange}
+              devices={devices}
+              userData={userData}
+              displayMode={displayMode}
+            />
+            <DeviceTable
+              aggregatedData={aggregatedData}
+              period={period}
+              dateRange={dateRange}
+              devices={devices}
+              userData={userData}
+              displayMode={displayMode}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>
   )
 }
+
