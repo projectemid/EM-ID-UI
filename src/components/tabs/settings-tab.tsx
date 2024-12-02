@@ -1,39 +1,100 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Info, Plus, User, Bell, Zap, Settings, HelpCircle } from 'lucide-react'
-import { useData } from '@/context/DataContext';
+import { Card, CardContent } from "@/components/ui/card"
+import { User, Zap, MapPin, Settings } from 'lucide-react'
+import { useData, UserData } from '@/context/DataContext'
+import { Toaster } from "@/components/ui/toaster"
+import { useToast } from '@/hooks/use-toast'
 
 interface SettingsTabProps {
   isDarkMode: boolean;
   toggleDarkMode: () => void;
 }
 
-export default function SettingsTab({ isDarkMode, toggleDarkMode }: SettingsTabProps) {
-  const { updateUserData } = useData();
-  const [defaultCost, setDefaultCost] = useState('9')
-  const [billingCycleStart, setBillingCycleStart] = useState('6')
-  const [showCost, setShowCost] = useState(false)
-  const [activeMenu, setActiveMenu] = useState('Electricity Info')
+export default function ImprovedSettingsTab({ isDarkMode, toggleDarkMode }: SettingsTabProps) {
+  const [activeTab, setActiveTab] = useState('account');
+  const { userData, updateUserData } = useData();
+  const { toast } = useToast();
 
-  const menuItems = [
-    { name: 'Account', icon: <User className="w-5 h-5" /> },
-    { name: 'Notifications', icon: <Bell className="w-5 h-5" /> },
-    { name: 'Electricity Info', icon: <Zap className="w-5 h-5" /> },
-    { name: 'General', icon: <Settings className="w-5 h-5" /> },
-    { name: 'Help', icon: <HelpCircle className="w-5 h-5" /> },
-  ]
+  const [formData, setFormData] = useState({
+    email: '',
+    energyProvider: '',
+    baseRatePerKWh: '',
+    peakRatePerKWh: '',
+    offPeakRatePerKWh: '',
+    city: '',
+    state: '',
+    country: '',
+    timeZone: ''
+  });
 
-  const handleDarkModeToggle = async () => {
-    try {
-      await updateUserData({ darkMode: !isDarkMode });
-      toggleDarkMode(); // Local state update
-    } catch (error) {
-      console.error('Error updating dark mode:', error);
+  useEffect(() => {
+    if (userData) {
+      setFormData({
+        email: userData.email || '',
+        energyProvider: userData.energyProvider || '',
+        baseRatePerKWh: userData.baseRatePerKWh?.toString() || '',
+        peakRatePerKWh: userData.peakRatePerKWh?.toString() || '',
+        offPeakRatePerKWh: userData.offPeakRatePerKWh?.toString() || '',
+        city: userData.city || '',
+        state: userData.state || '',
+        country: userData.country || '',
+        timeZone: userData.timeZone || ''
+      });
+    }
+  }, [userData]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSave = async () => {
+    const updates: Partial<Record<keyof UserData, string>> = {};
+    
+    if (userData) {
+      Object.entries(formData).forEach(([key, value]) => {
+        const typedKey = key as keyof typeof formData;
+        if (value !== userData[typedKey]?.toString()) {
+          if (['baseRatePerKWh', 'peakRatePerKWh', 'offPeakRatePerKWh'].includes(key)) {
+            updates[typedKey as keyof UserData] = value;
+          } else {
+            updates[typedKey as keyof UserData] = value;
+          }
+        }
+      });
+    }
+
+    if (Object.keys(updates).length > 0) {
+      console.log('Sending updates to API:', { userId: 'user1', ...updates });
+      try {
+        await updateUserData(updates as Partial<UserData>);
+        toast({
+          title: "Settings Updated",
+          description: "Your changes have been saved successfully.",
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error('Failed to update user data:', error);
+        toast({
+          title: "Update Failed",
+          description: "There was an error saving your changes. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
     }
   };
+
+  const menuItems = [
+    { name: 'account', label: 'Account', icon: <User className="w-5 h-5" /> },
+    { name: 'energy', label: 'Energy Info', icon: <Zap className="w-5 h-5" /> },
+    { name: 'location', label: 'Location', icon: <MapPin className="w-5 h-5" /> },
+    { name: 'preferences', label: 'Preferences', icon: <Settings className="w-5 h-5" /> },
+  ]
 
   return (
     <div className={`flex h-full ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
@@ -45,11 +106,11 @@ export default function SettingsTab({ isDarkMode, toggleDarkMode }: SettingsTabP
               <li key={item.name}>
                 <Button
                   variant="ghost"
-                  className={`w-full justify-start ${activeMenu === item.name ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-200') : ''}`}
-                  onClick={() => setActiveMenu(item.name)}
+                  className={`w-full justify-start ${activeTab === item.name ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-200') : ''}`}
+                  onClick={() => setActiveTab(item.name)}
                 >
                   {item.icon}
-                  <span className="ml-2">{item.name}</span>
+                  <span className="ml-2">{item.label}</span>
                 </Button>
               </li>
             ))}
@@ -60,90 +121,142 @@ export default function SettingsTab({ isDarkMode, toggleDarkMode }: SettingsTabP
       {/* Main Content */}
       <main className={`flex-1 p-8 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">{activeMenu}</h1>
-          <Button variant="outline">Save changes</Button>
+          <h1 className="text-2xl font-bold">{menuItems.find(item => item.name === activeTab)?.label}</h1>
+          {activeTab !== 'preferences' && (
+            <Button variant="outline" onClick={handleSave}>Save changes</Button>
+          )}
         </div>
 
-        {activeMenu === 'Electricity Info' && (
-          <>
-            <div className="flex space-x-4 mb-6">
-              <Info className="w-5 h-5" />
-              <span className="text-sm">Learn how to set your rates</span>
-            </div>
+        <Card className={isDarkMode ? 'bg-gray-800' : 'bg-white'}>
+          <CardContent className="p-6">
+            {activeTab === 'account' && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className={isDarkMode ? 'bg-gray-700 text-white' : ''} 
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="userId">User ID</Label>
+                  <Input id="userId" disabled value="user1" className={isDarkMode ? 'bg-gray-700 text-white' : ''} />
+                </div>
+              </div>
+            )}
 
-            <div className="grid grid-cols-2 gap-8">
-              {/* Billing Section */}
-              <div className={`p-6 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                <h2 className="text-lg font-semibold mb-4">Billing</h2>
-                <div className="space-y-4">
+            {activeTab === 'energy' && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="energyProvider">Energy Provider</Label>
+                  <Input 
+                    id="energyProvider"
+                    value={formData.energyProvider}
+                    onChange={handleInputChange}
+                    className={isDarkMode ? 'bg-gray-700 text-white' : ''} 
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="default-cost">Default Electricity Cost (¢ / kWh)</Label>
-                    <Input
-                      id="default-cost"
-                      value={defaultCost}
-                      onChange={(e) => setDefaultCost(e.target.value)}
-                      className={isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-800 border-gray-300'}
+                    <Label htmlFor="baseRatePerKWh">Base Rate (per kWh)</Label>
+                    <Input 
+                      id="baseRatePerKWh"
+                      type="number"
+                      step="0.01"
+                      value={formData.baseRatePerKWh}
+                      onChange={handleInputChange}
+                      className={isDarkMode ? 'bg-gray-700 text-white' : ''} 
                     />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="show-cost"
-                      checked={showCost}
-                      onCheckedChange={setShowCost}
-                      className={isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}
+                  <div>
+                    <Label htmlFor="peakRatePerKWh">Peak Rate (per kWh)</Label>
+                    <Input 
+                      id="peakRatePerKWh"
+                      type="number"
+                      step="0.01"
+                      value={formData.peakRatePerKWh}
+                      onChange={handleInputChange}
+                      className={isDarkMode ? 'bg-gray-700 text-white' : ''} 
                     />
-                    <Label htmlFor="show-cost">Show cost</Label>
                   </div>
                   <div>
-                    <Label htmlFor="billing-cycle">Billing Cycle Start</Label>
-                    <Input
-                      id="billing-cycle"
-                      value={billingCycleStart}
-                      onChange={(e) => setBillingCycleStart(e.target.value)}
-                      className={isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-800 border-gray-300'}
+                    <Label htmlFor="offPeakRatePerKWh">Off-Peak Rate (per kWh)</Label>
+                    <Input 
+                      id="offPeakRatePerKWh"
+                      type="number"
+                      step="0.01"
+                      value={formData.offPeakRatePerKWh}
+                      onChange={handleInputChange}
+                      className={isDarkMode ? 'bg-gray-700 text-white' : ''} 
                     />
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Time of Use Rate Zones Section */}
-              <div className={`p-6 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                <h2 className="text-lg font-semibold mb-4">Time of Use Rate Zones</h2>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-4`}>
-                  These will override the default electricity cost during the specified time period.
-                </p>
-                <Button variant="outline" className="w-full justify-start">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Rate Zone
-                </Button>
+            {activeTab === 'location' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="city">City</Label>
+                    <Input 
+                      id="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      className={isDarkMode ? 'bg-gray-700 text-white' : ''} 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="state">State</Label>
+                    <Input 
+                      id="state"
+                      value={formData.state}
+                      onChange={handleInputChange}
+                      className={isDarkMode ? 'bg-gray-700 text-white' : ''} 
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="country">Country</Label>
+                  <Input 
+                    id="country"
+                    value={formData.country}
+                    onChange={handleInputChange}
+                    className={isDarkMode ? 'bg-gray-700 text-white' : ''} 
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="timeZone">Time Zone</Label>
+                  <Input 
+                    id="timeZone"
+                    value={formData.timeZone}
+                    onChange={handleInputChange}
+                    className={isDarkMode ? 'bg-gray-700 text-white' : ''} 
+                  />
+                </div>
               </div>
-            </div>
-          </>
-        )}
+            )}
 
-        {activeMenu === 'General' && (
-          <div className={`p-6 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <h2 className="text-lg font-semibold mb-4">Theme</h2>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="dark-mode"
-                checked={isDarkMode}
-                onCheckedChange={handleDarkModeToggle}
-                className={isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}
-              />
-              <Label htmlFor="dark-mode">Dark Mode</Label>
-            </div>
-          </div>
-        )}
-
-        {/* Add placeholder content for other menu items */}
-        {(activeMenu === 'Account' || activeMenu === 'Notifications' || activeMenu === 'Help') && (
-          <div className={`p-6 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <h2 className="text-lg font-semibold mb-4">{activeMenu} Settings</h2>
-            <p>This is a placeholder for {activeMenu.toLowerCase()} settings. Implement the necessary fields and options here.</p>
-          </div>
-        )}
+            {activeTab === 'preferences' && (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="darkMode"
+                    checked={isDarkMode}
+                    onCheckedChange={toggleDarkMode}
+                  />
+                  <Label htmlFor="darkMode">Dark Mode</Label>
+                </div>
+                {/* Add more preference options here if needed */}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
+      <Toaster />
     </div>
   )
 }
+

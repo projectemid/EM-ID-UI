@@ -12,18 +12,17 @@ export interface Device {
   room?: string;
 }
 
-interface UserData {
-  city: string;
-  energyProvider: string;
-  userId: string;
-  baseRatePerKWh: number;
-  offPeakRatePerKWh: number;
-  peakRatePerKWh: number;
+export interface UserData {
   email: string;
-  country: string;
-  darkMode: boolean;
-  timeZone: string;
+  energyProvider: string;
+  baseRatePerKWh: number;
+  peakRatePerKWh: number;
+  offPeakRatePerKWh: number;
+  city: string;
   state: string;
+  country: string;
+  timeZone: string;
+  darkMode: boolean;
 }
 
 interface DataContextType {
@@ -35,6 +34,7 @@ interface DataContextType {
   fetchDevicesOn: () => void;
   fetchUserData: () => void;
   updateUserData: (updates: Partial<UserData>) => Promise<void>;
+  updateDevice: (deviceId: string, updates: Partial<Device>) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -50,7 +50,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     fetchDevicesOn(); // Initial fetch
 
     // Polling for devicesOn data every 30 seconds
-    const intervalId = setInterval(fetchDevicesOn, 5000);
+    const intervalId = setInterval(fetchDevicesOn, 10000000000000000);
 
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
@@ -59,6 +59,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const fetchDevices = async () => {
     try {
       const response = await fetch('https://thpjgw8n89.execute-api.us-east-1.amazonaws.com/prod/getDevices');
+      // @typescript-eslint/no-explicit-any
       const data = await response.json();
       setDevices(data);
       console.log('devices', data);
@@ -108,6 +109,44 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateDevice = async (deviceId: string, updates: Partial<Device>) => {
+    try {
+      // Create a clean request body with only the fields we want to update
+      const requestBody: Record<string, string | number | boolean> = {
+        userId: 'user1',
+        deviceId,
+        ...Object.entries(updates).reduce((acc, [key, value]) => {
+          if (value != null) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {} as Record<string, string | number | boolean>)
+      };
+
+      console.log('Final request body:', JSON.stringify(requestBody));
+
+      const response = await fetch('https://thpjgw8n89.execute-api.us-east-1.amazonaws.com/prod/editDeviceData', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+      console.log('API Response:', data);
+      
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Failed to update device');
+      }
+
+      await fetchDevices();
+    } catch (error) {
+      console.error('Error updating device:', error);
+      throw error;
+    }
+  };
+
   return (
     <DataContext.Provider value={{ 
       devices, 
@@ -117,7 +156,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       fetchDevices, 
       fetchDevicesOn, 
       fetchUserData,
-      updateUserData
+      updateUserData,
+      updateDevice  // Add the new function
     }}>
       {children}
     </DataContext.Provider>

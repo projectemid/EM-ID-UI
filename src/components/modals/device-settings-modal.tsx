@@ -23,6 +23,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useData } from '@/context/DataContext';
 
 interface CustomNotification {
   id: string;
@@ -37,19 +38,20 @@ interface DeviceSettingsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   device: Device
-  // Add this comment right before the line with the any type
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  onSave: (deviceData: any) => Promise<void>
-  isDarkMode?: boolean
+  isDarkMode: boolean
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onSave: (deviceData: Partial<Device>) => Promise<void>
 }
 
 export function DeviceSettingsModal({
   open,
   onOpenChange,
   device,
-  onSave,
   isDarkMode = false,
+  onSave,
 }: DeviceSettingsModalProps) {
+  const { updateDevice } = useData();
+
   const [formData, setFormData] = useState({
     label: device.label,
     brand: device.brand,
@@ -73,11 +75,42 @@ export function DeviceSettingsModal({
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
 
   const handleSave = async () => {
-    await onSave({
-      ...formData,
-      customNotifications: formData.customNotifications
-    })
-    onOpenChange(false)
+    if (!device?.deviceId) {
+      console.error('No device ID available');
+      return;
+    }
+
+    try {
+      // Build updates object with non-empty values only
+      const updates: Partial<Device> = {};
+
+      if (formData.label.trim()) updates.label = formData.label.trim();
+      if (formData.brand.trim()) updates.brand = formData.brand.trim();
+      if (formData.model.trim()) updates.model = formData.model.trim();
+      if (formData.category.trim()) updates.category = formData.category.trim();
+      if (formData.location.trim()) updates.room = formData.location.trim();
+      
+      // Only include numeric values if they're valid numbers
+      if (!isNaN(Number(formData.wattageOn))) {
+        updates.wattageOn = Number(formData.wattageOn);
+      }
+      if (!isNaN(Number(formData.wattageStandby))) {
+        updates.wattageStandby = Number(formData.wattageStandby);
+      }
+
+      // Only include boolean values if they're defined
+      if (typeof formData.showTimeLine === 'boolean') {
+        updates.showTimeline = formData.showTimeLine;
+      }
+
+      console.log('Device ID:', device.deviceId);
+      console.log('Updates to send:', updates);
+      
+      await updateDevice(device.deviceId, updates);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to save device settings:', error);
+    }
   }
 
   const addCustomNotification = () => {

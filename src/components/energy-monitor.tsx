@@ -11,7 +11,7 @@ import { useData } from '../context/DataContext';
 type NavItem = 'home' | 'analytics' | 'devices' | 'settings';
 
 export default function EnergyMonitor() {
-  const { userData } = useData();
+  const { userData, updateUserData } = useData();
   const [activeNav, setActiveNav] = useState<NavItem>('home');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -31,12 +31,19 @@ export default function EnergyMonitor() {
     }
   }, [isDarkMode]);
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    // Here you would typically also update the userData on your backend
+  const toggleDarkMode = async () => {
+    // Update local state immediately
+    setIsDarkMode(prev => !prev);
+    
+    // Update backend asynchronously
+    try {
+      await updateUserData({ darkMode: !isDarkMode });
+    } catch (error) {
+      // Revert the local state if the update fails
+      setIsDarkMode(prev => !prev);
+      console.error('Error updating dark mode:', error);
+    }
   };
-
-
 
   return (
 
