@@ -50,7 +50,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     fetchDevicesOn(); // Initial fetch
 
     // Polling for devicesOn data every 30 seconds
-    const intervalId = setInterval(fetchDevicesOn, 10000000000000000);
+    const intervalId = setInterval(fetchDevicesOn, 1000);
 
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
